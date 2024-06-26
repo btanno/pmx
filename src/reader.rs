@@ -551,6 +551,11 @@ impl Reader {
     }
 
     #[inline]
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+
+    #[inline]
     pub fn name(&self) -> String {
         let mut data =
             DataCursor::with_position(&self.data, &self.header, SeekFrom::Start(self.indices.name));
@@ -755,9 +760,9 @@ impl Reader {
             let visibility = flags & 0x0008 != 0;
             let operable = flags & 0x0010 != 0;
             let ik = flags & 0x0020 != 0;
-            let addition_local = flags & 0x0040 != 0;
-            let addition_rotation = flags & 0x0080 != 0;
-            let addition_translation = flags & 0x0100 != 0;
+            let addition_local = flags & 0x0080 != 0;
+            let addition_rotation = flags & 0x0100 != 0;
+            let addition_translation = flags & 0x0200 != 0;
             let fixed_pole = flags & 0x0400 != 0;
             let local_pole = flags & 0x0800 != 0;
             let after_physics = flags & 0x1000 != 0;
@@ -1077,6 +1082,30 @@ mod tests {
     }
 
     #[test]
+    fn last_vertex() {
+        let reader = new_reader();
+        let vertex = reader.vertices().last().unwrap();
+        let Weight::Bdef1(bdef) = vertex.weight else {
+            panic!();
+        };
+        assert!(bdef.bone == Some(35));
+    }
+
+    #[test]
+    fn last_face() {
+        let reader = new_reader();
+        let index = reader.faces().last().unwrap();
+        assert!(index == 4382);
+    }
+
+    #[test]
+    fn last_texture() {
+        let reader = new_reader();
+        let texture = reader.textures().last().unwrap();
+        assert!(texture.to_string_lossy() == "Alicia_other.tga");
+    }
+
+    #[test]
     fn last_material() {
         let reader = new_reader();
         let textures = reader.textures().collect::<Vec<_>>();
@@ -1089,6 +1118,41 @@ mod tests {
         assert!(material.self_shadow == true);
         assert!(material.edge == true);
         assert!(material.index_count == 296 * 3);
+    }
+
+    #[test]
+    fn last_bone() {
+        let reader = new_reader();
+        let bone = reader.bones().last().unwrap();
+        assert!(bone.name == "右足回転");
+        assert!(bone.parent == Some(133));
+        let addition = bone.addition.as_ref().unwrap();
+        assert!(addition.bone == Some(141));
+        assert!(addition.rotation == true);
+        let d = (addition.ratio - 0.5).abs();
+        assert!(d / addition.ratio <= f32::EPSILON || d / 0.5 <= f32::EPSILON);
+    }
+
+    #[test]
+    fn last_display_group() {
+        let reader = new_reader();
+        let display_group = reader.display_groups().last().unwrap();
+        assert!(display_group.name == "その他");
+        assert!(display_group.elements.len() == 4);
+        let element = display_group.elements.last().unwrap();
+        let DisplayElement::Bone(bone) = element else {
+            panic!();
+        };
+        assert!(*bone == Some(108));
+    }
+
+    #[test]
+    fn last_rigid() {
+        let reader = new_reader();
+        let rigid = reader.rigids().last().unwrap();
+        assert!(rigid.name == "三つ編み");
+        assert!(rigid.shape == rigid::Shape::Capsule);
+        assert!(rigid.method == rigid::Method::Static);
     }
 
     #[test]

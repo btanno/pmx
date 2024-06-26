@@ -1,7 +1,7 @@
 mod header;
 mod reader;
 
-use header::*;
+pub use header::*;
 pub use reader::*;
 
 #[derive(Clone, Debug)]
