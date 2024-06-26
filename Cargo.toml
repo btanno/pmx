@@ -1,0 +1,10 @@
+[package]
+name = "pmx"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "1.0.61"
+
+[dev-dependencies]
+anyhow = "1.0.86"
